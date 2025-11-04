@@ -2,27 +2,25 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { prisma } = require('../services/prisma.service');
+const { databaseService } = require('../services/database.service');
+const { Client } = require('pg');
 
 // Login
 router.post('/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
     
-    // Buscar usuário por ID ou email
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { id: identifier },
-          { email: identifier }
-        ]
-      },
-      include: {
-        company: true
-      }
-    });
+    // Buscar usuário por ID ou email usando SQL
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const userRes = await client.query(
+      'SELECT * FROM empresa.users WHERE id = $1 OR email = $2 LIMIT 1',
+      [identifier, identifier]
+    );
+    const user = userRes.rows[0];
 
     if (!user) {
+      await client.end();
       return res.status(401).json({
         success: false,
         error: 'ID/Email ou senha incorretos'
@@ -32,6 +30,7 @@ router.post('/login', async (req, res) => {
     // Verificar senha
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      await client.end();
       return res.status(401).json({
         success: false,
         error: 'ID/Email ou senha incorretos'
@@ -39,18 +38,18 @@ router.post('/login', async (req, res) => {
     }
 
     // Atualizar último acesso
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastAccess: new Date() }
-    });
+    await client.query(
+      'UPDATE empresa.users SET "lastAccess" = $1 WHERE id = $2',
+      [new Date(), user.id]
+    );
 
     // Gerar token JWT
     const token = jwt.sign(
       { 
         id: user.id, 
         email: user.email,
-        role: user.role,
-        companyId: user.companyId
+        companyId: user.companyId,
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
@@ -59,11 +58,11 @@ router.post('/login', async (req, res) => {
     // Remover senha do objeto de resposta
     const { password: _, ...userWithoutPassword } = user;
 
+    await client.end();
     return res.json({
       success: true,
       user: userWithoutPassword,
-      token,
-      company: user.company
+      token
     });
   } catch (error) {
     console.error('Erro no login:', error);
@@ -95,55 +94,42 @@ router.post('/register', async (req, res) => {
     }
 
     // Verificar se a empresa existe
-    const company = await prisma.company.findUnique({
-      where: { id: String(companyId) }
-    });
-
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const companyRes = await client.query('SELECT * FROM empresa.companies WHERE id = $1', [companyId]);
+    const company = companyRes.rows[0];
     if (!company) {
+      await client.end();
       return res.status(404).json({
         success: false,
         error: 'Empresa não encontrada. Crie uma empresa primeiro.'
       });
     }
-    
     // Verificar se já existe usuário com este email
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
+    const userRes = await client.query('SELECT * FROM empresa.users WHERE email = $1', [email]);
+    if (userRes.rows.length > 0) {
+      await client.end();
       return res.status(400).json({
         success: false,
         error: 'Email já está em uso'
       });
     }
-
     // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
-
     // Criar usuário
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: 'admin', // Primeiro usuário é admin
-        department: 'Administração',
-        companyId,
-        status: 'active'
-      },
-      include: {
-        company: true
-      }
-    });
+    const insertRes = await client.query(
+      'INSERT INTO empresa.users (name, email, password, companyId, role, status, department, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
+      [name, email, hashedPassword, companyId, tipoUsuario || 'user', 'active', '']
+    );
+    const user = insertRes.rows[0];
 
     // Gerar token JWT
     const token = jwt.sign(
       { 
         id: user.id, 
         email: user.email,
-        role: user.role,
-        companyId: user.companyId
+        companyId: user.companyId,
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
@@ -151,12 +137,12 @@ router.post('/register', async (req, res) => {
 
     // Remover senha do objeto de resposta
     const { password: _, ...userWithoutPassword } = user;
+    await client.end();
 
     return res.status(201).json({
       success: true,
       user: userWithoutPassword,
-      token,
-      company: user.company
+      token
     });
   } catch (error) {
     console.error('Erro no registro:', error);

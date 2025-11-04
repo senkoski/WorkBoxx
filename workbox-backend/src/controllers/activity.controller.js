@@ -1,4 +1,3 @@
-const { prisma } = require('../services/prisma.service');
 
 const activityController = {
   // Listar atividades com filtros

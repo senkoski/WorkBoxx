@@ -58,6 +58,16 @@ export function Header() {
       const usersData = await usersResponse.json()
       const users = usersData.data || []
 
+      // Buscar empresas via API
+      const companiesResponse = await fetch(`http://localhost:3001/api/companies`)
+      const companiesData = await companiesResponse.json()
+      const companies = companiesData.data || []
+
+      // Buscar notas fiscais via API
+      const invoicesResponse = await fetch(`http://localhost:3001/api/invoices`)
+      const invoicesData = await invoicesResponse.json()
+      const invoices = invoicesData.data || []
+
       // Filtrar produtos
       const matchingProducts = products.filter(
         (p: any) =>
@@ -73,9 +83,26 @@ export function Header() {
           u.email?.toLowerCase().includes(value.toLowerCase())
       )
 
+      // Filtrar empresas
+      const matchingCompanies = companies.filter(
+        (c: any) =>
+          c.name?.toLowerCase().includes(value.toLowerCase()) ||
+          c.cnpj?.toLowerCase().includes(value.toLowerCase()) ||
+          c.email?.toLowerCase().includes(value.toLowerCase())
+      )
+
+      // Filtrar notas fiscais
+      const matchingInvoices = invoices.filter(
+        (i: any) =>
+          i.number?.toString().toLowerCase().includes(value.toLowerCase()) ||
+          i.companyName?.toLowerCase().includes(value.toLowerCase())
+      )
+
       const results = [
         ...matchingProducts.map((p: any) => ({ type: "product", ...p })),
         ...matchingUsers.map((u: any) => ({ type: "user", ...u })),
+        ...matchingCompanies.map((c: any) => ({ type: "company", ...c })),
+        ...matchingInvoices.map((i: any) => ({ type: "invoice", ...i })),
       ]
 
       setSearchResults(results)
@@ -97,59 +124,6 @@ export function Header() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <SidebarTrigger />
-          <div className="hidden md:flex items-center gap-2 max-w-md flex-1 relative">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Buscar produtos, notas fiscais..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-              />
-
-              {isSearching && !isSearchLoading && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-lg shadow-lg max-h-64 overflow-y-auto z-50">
-                  {searchResults.slice(0, 8).map((result, index) => (
-                    <div
-                      key={index}
-                      className="px-4 py-2 hover:bg-secondary cursor-pointer border-b last:border-b-0"
-                      onClick={() => {
-                        if (result.type === "product") {
-                          window.location.href = '/dashboard/estoque'
-                        } else if (result.type === "user") {
-                          window.location.href = '/dashboard/usuarios'
-                        }
-                        setSearchTerm("")
-                        setSearchResults([])
-                        setIsSearching(false)
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        {result.type === "product" && (
-                          <>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Produto</span>
-                            <span className="text-sm font-medium">{result.name}</span>
-                          </>
-                        )}
-                        {result.type === "user" && (
-                          <>
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Usuário</span>
-                            <span className="text-sm font-medium">{result.name}</span>
-                          </>
-                        )}
-                        {result.type === "invoice" && (
-                          <>
-                            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">Fiscal</span>
-                            <span className="text-sm font-medium">{result.number}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center gap-2">

@@ -19,6 +19,8 @@ export function CompaniesManagement() {
   const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentCompany, setCurrentCompany] = useState<any>(null)
+  const [sortBy, setSortBy] = useState<string>("name")
+  const [sortOrder, setSortOrder] = useState<"asc"|"desc">("asc")
 
   const loadCompanies = async () => {
     try {
@@ -79,13 +81,32 @@ export function CompaniesManagement() {
     }
   }
 
-  const filteredCompanies = companies.filter((company) => {
-    const matchesSearch =
-      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.cnpj.includes(searchTerm) ||
-      company.email.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+    } else {
+      setSortBy(column)
+      setSortOrder("asc")
+    }
+  }
+
+  const sortedCompanies = [...companies].sort((a, b) => {
+    let aValue = a[sortBy] || ""
+    let bValue = b[sortBy] || ""
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+    if (aValue < bValue) return sortOrder === "asc" ? -1 : 1
+    if (aValue > bValue) return sortOrder === "asc" ? 1 : -1
+    return 0
   })
+
+  const filteredCompanies = sortedCompanies.filter(
+    (company) =>
+      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.cnpj?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="space-y-6">
@@ -96,7 +117,7 @@ export function CompaniesManagement() {
               <Building2 className="h-5 w-5" />
               Empresas Cadastradas
             </CardTitle>
-            <Button onClick={() => setIsModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-primary/80">
               <Plus className="h-4 w-4 mr-2" />
               Cadastrar Empresa
             </Button>
@@ -122,10 +143,22 @@ export function CompaniesManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>CNPJ</TableHead>
-                      <TableHead>Contato</TableHead>
-                      <TableHead>Endereço</TableHead>
+                      <TableHead onClick={() => handleSort("name")}
+                        className="cursor-pointer select-none">
+                        Empresa {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
+                      </TableHead>
+                      <TableHead onClick={() => handleSort("cnpj")}
+                        className="cursor-pointer select-none">
+                        CNPJ {sortBy === "cnpj" && (sortOrder === "asc" ? "▲" : "▼")}
+                      </TableHead>
+                      <TableHead onClick={() => handleSort("email")}
+                        className="cursor-pointer select-none">
+                        Contato {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
+                      </TableHead>
+                      <TableHead onClick={() => handleSort("address")}
+                        className="cursor-pointer select-none">
+                        Endereço {sortBy === "address" && (sortOrder === "asc" ? "▲" : "▼")}
+                      </TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>

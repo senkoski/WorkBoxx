@@ -3,7 +3,6 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { prisma } = require('../services/prisma.service');
 const { authMiddleware, roleMiddleware } = require('../middlewares/auth.middleware');
 
 // Configuração do Multer para upload de arquivos

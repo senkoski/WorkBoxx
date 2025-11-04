@@ -1,0 +1,35 @@
+/* Adicione estas classes se estiver usando Tailwind CSS */
+/* Caso contrário, você pode usar CSS vanilla equivalente */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos customizados para o formulário */
+.form-section {
+  @apply space-y-4;
+}
+
+.form-group {
+  @apply space-y-1;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.form-input-error {
+  @apply border-red-500;
+}
+
+.form-error {
+  @apply text-red-500 text-sm mt-1;
+}
+
+.form-button {
+  @apply w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200;
+}

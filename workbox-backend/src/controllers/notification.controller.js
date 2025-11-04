@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client');
-const { prisma } = require('../services/prisma.service');
 
 const notificationController = {
   // Listar notificações do usuário

@@ -36,7 +36,14 @@ export function useTheme() {
       orange: "24.6 95% 53.1%",
     }
 
-    document.documentElement.style.setProperty("--primary", colorMap[color] || colorMap["green"])
+    // Atualiza cor primária global
+    html.style.setProperty("--primary", colorMap[color] || colorMap["green"])
+
+    // Atualiza variáveis do sidebar para refletir a cor primária
+    html.style.setProperty("--sidebar-primary", colorMap[color] || colorMap["green"])
+    html.style.setProperty("--sidebar-ring", colorMap[color] || colorMap["green"])
+    html.style.setProperty("--sidebar-accent", colorMap[color] || colorMap["green"])
+
     localStorage.setItem("theme", newTheme)
     localStorage.setItem("primaryColor", color)
   }

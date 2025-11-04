@@ -20,6 +20,8 @@ export function StockManagement() {
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortBy, setSortBy] = useState<string>("name")
+  const [sortOrder, setSortOrder] = useState<"asc"|"desc">("asc")
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -42,18 +44,28 @@ export function StockManagement() {
     return () => clearInterval(interval)
   }, [])
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "critical":
-        return <Badge variant="destructive">Crítico</Badge>
-      case "low":
-        return <Badge variant="secondary">Baixo</Badge>
-      default:
-        return <Badge variant="outline">Normal</Badge>
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+    } else {
+      setSortBy(column)
+      setSortOrder("asc")
     }
   }
 
-  const filteredProducts = products.filter((product) => {
+  const sortedProducts = [...products].sort((a, b) => {
+    let aValue = a[sortBy] || ""
+    let bValue = b[sortBy] || ""
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+    if (aValue < bValue) return sortOrder === "asc" ? -1 : 1
+    if (aValue > bValue) return sortOrder === "asc" ? 1 : -1
+    return 0
+  })
+
+  const filteredProducts = sortedProducts.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
     return matchesSearch && matchesCategory
@@ -74,6 +86,34 @@ export function StockManagement() {
         console.error("Erro ao excluir produto:", error)
       }
     }
+  }
+
+  function getStatusBadge(status: string) {
+    let color = "bg-gray-300 text-gray-800"
+    let label = status
+    const normalized = status.trim().toLowerCase()
+    if (normalized === "ativo" || normalized === "active") {
+      color = "bg-green-100 text-green-800"
+      label = "Ativo"
+    } else if (normalized === "inativo" || normalized === "inactive") {
+      color = "bg-red-100 text-red-800"
+      label = "Inativo"
+    } else if (normalized === "esgotado") {
+      color = "bg-yellow-100 text-yellow-800"
+      label = "Esgotado"
+    } else if (normalized === "critical" || normalized === "critico") {
+      color = "bg-red-700 text-white"
+      label = "Crítico"
+    } else if (normalized === "low" || normalized === "baixo") {
+      color = "bg-blue-100 text-blue-800"
+      label = "Baixo"
+    } else if (normalized === "normal") {
+      color = "bg-gray-100 text-gray-800"
+      label = "Normal"
+    }
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-semibold ${color}`}>{label}</span>
+    )
   }
 
   return (
@@ -119,11 +159,26 @@ export function StockManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Estoque</TableHead>
-                    <TableHead>Preço</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead onClick={() => handleSort("name")}
+                      className="cursor-pointer select-none">
+                      Produto {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </TableHead>
+                    <TableHead onClick={() => handleSort("category")}
+                      className="cursor-pointer select-none">
+                      Categoria {sortBy === "category" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </TableHead>
+                    <TableHead onClick={() => handleSort("stock")}
+                      className="cursor-pointer select-none">
+                      Estoque {sortBy === "stock" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </TableHead>
+                    <TableHead onClick={() => handleSort("price")}
+                      className="cursor-pointer select-none">
+                      Preço {sortBy === "price" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </TableHead>
+                    <TableHead onClick={() => handleSort("status")}
+                      className="cursor-pointer select-none">
+                      Status {sortBy === "status" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>

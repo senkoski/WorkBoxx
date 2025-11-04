@@ -1,4 +1,3 @@
-const { prisma } = require('../services/prisma.service');
 
 const productController = {
   // Listar produtos com filtros

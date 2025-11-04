@@ -1,4 +1,3 @@
-const { prisma } = require('../services/prisma.service');
 const bcrypt = require('bcryptjs');
 
 const userController = {

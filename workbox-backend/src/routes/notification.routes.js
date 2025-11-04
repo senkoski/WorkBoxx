@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { prisma } = require('../services/prisma.service');
 const { authMiddleware } = require('../middlewares/auth.middleware');
 
 // Listar notificações do usuário

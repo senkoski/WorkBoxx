@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client');
-const { prisma } = require('../services/prisma.service');
 
 const companyController = {
   // Listar todas as empresas

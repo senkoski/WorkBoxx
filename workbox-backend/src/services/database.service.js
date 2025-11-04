@@ -1,4 +1,3 @@
-const { PrismaClient } = require('@prisma/client');
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
@@ -172,92 +171,6 @@ class DatabaseService {
     }
   }
 
-  // Obter conexão Prisma para uma empresa específica
-  async getCompanyPrisma(companyId) {
-    const dbName = `empresa_${companyId}`;
-
-    // Verificar se já existe conexão em cache
-    if (dbConnections.has(companyId)) {
-      return dbConnections.get(companyId);
-    }
-
-    // Verificar se o banco existe
-    const exists = await this.databaseExists(companyId);
-    if (!exists) {
-      throw new Error(`Banco de dados para empresa ${companyId} não existe`);
-    }
-
-    // Criar nova conexão
-    const prismaUrl = process.env.DATABASE_URL.replace(
-      /\/[^\/]+$/,
-      `/${dbName}`
-    );
-
-    const prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: prismaUrl,
-        },
-      },
-      log: ['error', 'warn'],
-    });
-
-    // Cache da conexão
-    dbConnections.set(companyId, prisma);
-
-    console.log(`🔗 Conexão estabelecida para empresa ${companyId}`);
-    return prisma;
-  }
-
-  // Migrar usuário para o banco da empresa
-  async migrateUserToCompanyDatabase(user, companyId) {
-    try {
-      const prisma = await this.getCompanyPrisma(companyId);
-
-      // Verificar se usuário já existe no banco da empresa
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email }
-      });
-
-      if (!existingUser) {
-        // Criar usuário no banco da empresa
-        await prisma.user.create({
-          data: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            password: user.password,
-            role: user.role,
-            status: user.status,
-            department: user.department,
-            lastAccess: user.lastAccess,
-            avatar: user.avatar,
-            companyId: user.companyId,
-          }
-        });
-
-        console.log(`👤 Usuário ${user.email} migrado para empresa ${companyId}`);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Erro ao migrar usuário:', error);
-      return false;
-    }
-  }
-
-  // Fechar todas as conexões
-  async closeAllConnections() {
-    for (const [companyId, prisma] of dbConnections) {
-      await prisma.$disconnect();
-      console.log(`🔌 Conexão fechada para empresa ${companyId}`);
-    }
-    dbConnections.clear();
-
-    if (adminClient._connected) {
-      await adminClient.end();
-    }
-  }
 }
 
 const databaseService = new DatabaseService();

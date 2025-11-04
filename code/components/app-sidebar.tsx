@@ -47,6 +47,16 @@ const menuItems = [
     icon: Building2,
   },
   {
+    title: "Movimentação",
+    url: "/dashboard/movimentacao",
+    icon: Box,
+  },
+  {
+    title: "Tickets Patrimônio",
+    url: "/dashboard/tickets-patrimonio",
+    icon: FileText,
+  },
+  {
     title: "Usuários",
     url: "/dashboard/usuarios",
     icon: Users,
@@ -134,14 +144,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r">
-      <SidebarHeader className="border-b p-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Box className="h-4 w-4" />
+      <SidebarHeader>
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="WorkBox" className="h-8 w-8" />
+            <span className="text-lg font-bold">WorkBox</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">WorkBox</span>
-          </div>
+        </div>
+        <div className="p-4">
+          <CompanySwitcher />
         </div>
       </SidebarHeader>
 
@@ -166,7 +177,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <CompanySwitcher />
         <div className="text-xs text-muted-foreground text-center mt-2">WorkBox v1.0.0</div>
       </SidebarFooter>
     </Sidebar>

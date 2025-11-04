@@ -1,7 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
-const { prisma } = require('../services/prisma.service');
 
 const invoiceController = {
   // Listar notas fiscais com filtros

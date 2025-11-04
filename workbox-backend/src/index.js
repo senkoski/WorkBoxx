@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { testConnection } = require('./services/prisma.service');
 const path = require('path');
 const fs = require('fs');
 
@@ -47,12 +46,10 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // Rota de teste
-app.get('/api/health', async (req, res) => {
-  const dbConnected = await testConnection();
+app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok', 
-    message: 'API WorkBox está funcionando!',
-    database: dbConnected ? 'conectado' : 'desconectado'
+    message: 'API WorkBox está funcionando!'
   });
 });
 
@@ -60,8 +57,7 @@ app.get('/api/health', async (req, res) => {
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 
-  // Testar conexão com o banco de dados
-  await testConnection();
+  // ...existing code...
 });
 
 // Tratamento de erros não capturados

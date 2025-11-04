@@ -1,26 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const { prisma } = require('../services/prisma.service');
+const { Client } = require('pg');
 const { authMiddleware, roleMiddleware } = require('../middlewares/auth.middleware');
 
 // Listar usuários da empresa
 router.get('/', async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        department: true,
-        lastAccess: true,
-        avatar: true,
-        createdAt: true,
-        companyId: true
-      }
-    });
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const usersRes = await client.query('SELECT id, name, email, role, status, department, "lastAccess", avatar, "createdAt", "companyId" FROM empresa.users');
+    const users = usersRes.rows;
+    await client.end();
 
     return res.json({
       success: true,
@@ -41,39 +32,23 @@ router.post('/', authMiddleware, async (req, res) => {
     const { name, email, password, role, department, companyId } = req.body;
 
     // Verificar se o email já existe
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const userRes = await client.query('SELECT * FROM empresa.users WHERE email = $1', [email]);
+    const existingUser = userRes.rows[0];
     if (existingUser) {
+      await client.end();
       return res.status(400).json({
         success: false,
         error: 'Email já cadastrado'
       });
     }
-
-    // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
+    const insertRes = await client.query('INSERT INTO empresa.users (name, email, password, role, department, "companyId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, name, email, role, department, "companyId", "createdAt"', [name, email, hashedPassword, role, department, companyId]);
+    const user = insertRes.rows[0];
+    await client.end();
 
-    // Criar usuário
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        department,
-        companyId
-      }
-    });
-
-    // Remover senha do objeto de resposta
-    const { password: _, ...userWithoutPassword } = user;
-
-    return res.status(201).json({
-      success: true,
-      user: userWithoutPassword
-    });
+    // ...existing code...
   } catch (error) {
     console.error('Erro ao criar usuário:', error);
     return res.status(500).json({
@@ -88,21 +63,11 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        department: true,
-        lastAccess: true,
-        avatar: true,
-        createdAt: true,
-        companyId: true
-      }
-    });
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const userRes = await client.query('SELECT id, name, email, role, status, department, "lastAccess", avatar, "createdAt", "companyId" FROM empresa.users WHERE id = $1', [id]);
+    const user = userRes.rows[0];
+    await client.end();
 
     if (!user) {
       return res.status(404).json({
@@ -133,45 +98,23 @@ router.put('/:id', async (req, res) => {
     const { name, role, status, department } = req.body;
 
     // Verificar se o usuário existe
-    const existingUser = await prisma.user.findUnique({
-      where: { id }
-    });
-
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const userRes = await client.query('SELECT id FROM empresa.users WHERE id = $1', [id]);
+    const existingUser = userRes.rows[0];
     if (!existingUser) {
+      await client.end();
       return res.status(404).json({
         success: false,
         error: 'Usuário não encontrado'
       });
     }
-
-
-
-    // Atualizar usuário
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        name,
-        role,
-        status,
-        department
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        department: true,
-        lastAccess: true,
-        avatar: true,
-        createdAt: true,
-        companyId: true
-      }
-    });
-
+    const updateRes = await client.query('UPDATE empresa.users SET name = $1, role = $2, status = $3, department = $4, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $5 RETURNING id, name, email, role, status, department, "lastAccess", avatar, "createdAt", "companyId"', [name, role, status, department, id]);
+    const updatedUser = updateRes.rows[0];
+    await client.end();
     return res.json({
       success: true,
-      user
+      user: updatedUser
     });
   } catch (error) {
     console.error('Erro ao atualizar usuário:', error);
@@ -188,22 +131,19 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
     // Verificar se o usuário existe
-    const existingUser = await prisma.user.findUnique({
-      where: { id }
-    });
-
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const userRes = await client.query('SELECT id FROM empresa.users WHERE id = $1', [id]);
+    const existingUser = userRes.rows[0];
     if (!existingUser) {
+      await client.end();
       return res.status(404).json({
         success: false,
         error: 'Usuário não encontrado'
       });
     }
-
-    // Deletar usuário
-    await prisma.user.delete({
-      where: { id }
-    });
-
+    await client.query('DELETE FROM empresa.users WHERE id = $1', [id]);
+    await client.end();
     return res.json({
       success: true,
       message: 'Usuário deletado com sucesso'
@@ -223,25 +163,23 @@ router.get('/:id/companies', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     // Verificar se o usuário existe
-    const existingUser = await prisma.user.findUnique({
-      where: { id }
-    });
-
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    const userRes = await client.query('SELECT "companyId" FROM empresa.users WHERE id = $1', [id]);
+    const existingUser = userRes.rows[0];
     if (!existingUser) {
+      await client.end();
       return res.status(404).json({
         success: false,
         error: 'Usuário não encontrado'
       });
     }
-
-    // Obter empresa do usuário
-    const company = await prisma.company.findUnique({
-      where: { id: existingUser.companyId }
-    });
-
+    const companyRes = await client.query('SELECT * FROM empresa.companies WHERE id = $1', [existingUser.companyId]);
+    const company = companyRes.rows[0];
+    await client.end();
     return res.json({
       success: true,
-      companies: [company]
+      companies: company ? [company] : []
     });
   } catch (error) {
     console.error('Erro ao listar empresas do usuário:', error);

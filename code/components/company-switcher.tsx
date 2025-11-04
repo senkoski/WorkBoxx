@@ -55,11 +55,22 @@ export function CompanySwitcher() {
   const handleSwitchCompany = (company: Company) => {
     storage.setCurrentCompany(company)
     setCurrentCompany(company)
-    // Dispatch custom event to notify other components about company change
     window.dispatchEvent(new CustomEvent('companyChanged', { detail: company }))
-    // No need to reload, the sidebar will update via the event
+    // Redireciona para o dashboard principal após troca
+    window.location.href = '/dashboard'
   }
 
+  // Se só tem uma empresa, ou se está logado, não mostra dropdown
+  if (!companies || companies.length <= 1) {
+    return (
+      <Button variant="outline" className="flex items-center gap-2 bg-transparent w-full justify-start cursor-default" disabled>
+        <Building2 className="h-4 w-4" />
+        <span className="text-sm truncate">{currentCompany?.name || "Selecionar Empresa"}</span>
+      </Button>
+    )
+  }
+
+  // Se tem mais de uma empresa, mostra dropdown normalmente
   return (
     <div className="space-y-2">
       <DropdownMenu>
@@ -70,16 +81,13 @@ export function CompanySwitcher() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel>Empresas Cadastradas</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {companies.map((company) => (
+          {companies.filter(c => c.id !== currentCompany?.id).map((company) => (
             <DropdownMenuItem
               key={company.id}
               onClick={() => handleSwitchCompany(company)}
               className="flex items-center justify-between"
             >
               <span>{company.name}</span>
-              {currentCompany?.id === company.id && <Check className="h-4 w-4 text-primary" />}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

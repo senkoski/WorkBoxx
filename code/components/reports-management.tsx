@@ -228,7 +228,7 @@ ${report.type},${report.date},${report.status}`
             </div>
             <div className="flex items-end">
               <Button
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-primary hover:bg-primary/80"
                 onClick={handleGenerateReport}
                 disabled={isGenerating}
               >
